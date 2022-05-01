@@ -1,7 +1,7 @@
 #define EPS 2
 
 //Frequency(Hz) of the input signal
-const float FREQ = 200;
+const float FREQ = 440;
 
 //States of Finite State Machine(FSM)
 enum States{
@@ -20,54 +20,41 @@ uint16_t N;
 uint8_t condition;
 
 struct dataPP{
-  float left;
-  float right;
+  uint16_t left;
+  uint16_t right;
 }typedef DataPP;
 
-DataPP DefaultAVG,DefaultRMS;
-DataPP lowestAVG,lowestRMS;
-DataPP lowAVG,lowRMS;
-DataPP highAVG,highRMS;
-DataPP highestAVG,highestRMS;
-DataPP msgAVG,msgRMS;
+DataPP sigIn,sigOld;
+DataPP Default;
+DataPP lowest;
+DataPP low;
+DataPP high;
+DataPP highest;
+DataPP msg;
 //uint8_t flag1,flag2,flag3,flag4,theEnd;
 
-void AVG(DataPP *sig, float freq){ 
-  uint32_t N = 0;
+void PP(DataPP *sig, float freq){ 
+  uint16_t X_min = 4096;
+  uint16_t X_max = 0;
+  uint16_t Y_min = 4096;
+  uint16_t Y_max = 0;
   
-  float T = 1000*(1/freq);
+  unsigned long T = 20*(1/freq);
   unsigned long t0 = (unsigned long)millis();
 
   while((unsigned long)(millis() - t0) <= T){
-    uint32_t leftIn = analogRead(A0);
-    uint32_t rightIn = analogRead(A2);
+    uint16_t leftIn = analogRead(A0);
+    uint16_t rightIn = analogRead(A2);
 
-    sig->left += leftIn;
-    sig->right += rightIn;
-    N++;
+    X_min = leftIn < X_min ? leftIn : X_min;
+    X_max = leftIn > X_max ? leftIn : X_max;
+    Y_min = rightIn < Y_min ? rightIn : Y_min;
+    Y_max = rightIn > Y_max ? rightIn : Y_max;    
   };
-  sig->left /= N;
-  sig->right /= N;
-}
-void RMS(DataPP *Xrms,DataPP *avg,float freq){
-  float T = 1000*(1/freq);
-  float l;
-  float r;
-  uint32_t N = 0;
   
-  unsigned long t0 = (unsigned long)millis();
-
-  while((unsigned long)(millis() - t0) <= T){
-    l = analogRead(A0) - avg->left;
-    r = analogRead(A2) - avg->right;
-    Xrms->left += l*l;
-    Xrms->right += r*r;
-    N++;
-  };
-  Xrms->left = sqrt(Xrms->left/N);
-  Xrms->right = sqrt(Xrms->right/N);
+  sig->left = X_max - X_min;
+  sig->right = Y_max - Y_min;
 }
-
 void process(uint8_t NextState,uint8_t CurrentState,DataPP *sigIn,DataPP *store,uint8_t condition){
   if(condition){    
     state = NextState;
@@ -75,11 +62,14 @@ void process(uint8_t NextState,uint8_t CurrentState,DataPP *sigIn,DataPP *store,
     store->right = store->right / N;
     N = 0;
   }else{
-    if(N <= 100){      
+    if(N <= 50){      
       store->left += sigIn->left;
       store->right += sigIn->right;
       N++;
     }else{
+      Serial.println(store->left/N);
+      Serial.print(",");
+      Serial.println(store->right/N);
       N = 0;
       store->left = 0;
       store->right = 0;
@@ -87,40 +77,30 @@ void process(uint8_t NextState,uint8_t CurrentState,DataPP *sigIn,DataPP *store,
     state = CurrentState;
   }  
 }
-void setup() {
-  Serial.begin(500000);
+void setup() {  
+  Serial.begin(500000);  
   pinMode(A0,INPUT);
   pinMode(A2,INPUT);
 
-  DefaultAVG.left = DefaultAVG.right = 0;
-  DefaultRMS.left = DefaultRMS.right = 0;
-  AVG(&DefaultAVG,FREQ);
-  RMS(&DefaultRMS,&DefaultAVG,FREQ);
+  Default.left = Default.right = 0;  
+  PP(&Default,FREQ);
   
-  lowestAVG.left = lowAVG.left = highAVG.left = highestAVG.left = DefaultAVG.left;
-  lowestRMS.left = lowRMS.left = highRMS.left = highestRMS.left = DefaultRMS.left;
-  lowestAVG.right = lowAVG.right = highAVG.right = highestAVG.right = DefaultAVG.right;
-  lowestRMS.right = lowRMS.right = highRMS.right = highestRMS.right = DefaultRMS.right;
+  //lowest.left = low.left = high.left = highest.left = Default.left;  
+  //lowest.right = low.right = high.right = highest.right = Default.right;  
   //flag1 = flag2 = flag3 = flag4 = theEnd = 0;
   
-  state = 20;
+  state = FSM_INIT;
   N = 0;
 }
-void loop() { 
-  DataPP avgIn;
-  DataPP avgOld;
-  DataPP rmsIn;
-  DataPP rmsOld;
-
-  avgIn.left = avgIn.right = 0;  
-  rmsIn.left = rmsIn.right = 0;
-  AVG(&avgIn,FREQ);
-  RMS(&rmsIn,&avgIn,FREQ);
+void loop() {      
+  PP(&sigIn,FREQ);
   //delayMicroseconds(1000);
-  
-  Serial.println("(SigLeft) = "+(String)rmsIn.left);  
+
+  /*
+  Serial.println("(SigLeft) = "+(String)sigIn.left);  
   Serial.print(",");
-  Serial.println("(SigRight) = "+(String)rmsIn.right);
+  Serial.println("(SigRight) = "+(String)sigIn.right);
+  */
     
   /*
   Serial.println("Current state: "+(String)state);
@@ -131,17 +111,17 @@ void loop() {
   Serial.print(",");
   Serial.println("(DefaultRight) = "+(String)Default.right);
   */
-  /*
+  
   switch(state){
     case FSM_INIT:      
-      condition = sigIn.left > 1.3*sigOld.left && sigIn.right > 1.3*sigOld.right;
+      //condition = sigIn.left > 1.3*sigOld.left && sigIn.right > 1.3*sigOld.right;
       
       process(FSM_LOWEST,FSM_INIT,&sigIn,&Default,condition);
       
       if(condition){
         Serial.println("(DefaultLeft) = "+(String)Default.left);
         Serial.print(",");
-        Serial.println("(DefaultRight) = "+(String)Default.right);
+        Serial.println("(DefaultRight) = "+(String)Default.right);        
       }       
       
       break;
@@ -234,16 +214,14 @@ void loop() {
         Serial.println("BOTAO 9");
       
       state = FSM_INIT;
-      AVG(&Default,FREQ);
+      PP(&Default,FREQ);
       lowest.left = low.left = high.left = highest.left = Default.left;
       lowest.right = low.right = high.right = highest.right = Default.right;
       break;
   }
-  */
-  avgOld.left = avgIn.left;
-  avgOld.right = avgIn.right;
-  rmsOld.left = rmsIn.left;
-  rmsOld.right = rmsIn.right;
+  
+  sigOld.left = sigIn.left;
+  sigOld.right = sigIn.right;  
   
   //Serial.println("(LOldPP) = "+(String)sigOld.left+"\t(ROldPP) = "+(String)sigOld.right);
   
