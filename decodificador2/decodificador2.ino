@@ -1,4 +1,5 @@
-#define EPS 15
+#define EPS 25
+#define EPS2 25
 #define AVG_LIM 50
 
 //Frequency(Hz) of the input signal
@@ -109,7 +110,7 @@ void loop() {
     AvgCurr.right = AvgOld.right;
   }    
   */
-  Serial.println("State = "+(String)state);
+  //Serial.println("State = "+(String)state);
   switch(state){
     case FSM_INIT:                  
       state = FSM_AVG1;      
@@ -126,8 +127,8 @@ void loop() {
       break;
     case FSM_PEAK_DETECT:
       state = AvgCurr.right > AvgOld.right+EPS && AvgCurr.left > AvgOld.left+EPS ? FSM_AVG3 : FSM_AVG2;
-      Serial.println("Curr Right = "+(String)AvgCurr.right+", Curr Left = "+(String)AvgCurr.left);
-      Serial.println("Old Right = "+(String)AvgOld.right+", Old Left = "+(String)AvgOld.left);
+      //Serial.println("Curr Right = "+(String)AvgCurr.right+", Curr Left = "+(String)AvgCurr.left);
+      //Serial.println("Old Right = "+(String)AvgOld.right+", Old Left = "+(String)AvgOld.left);
       if(state == FSM_AVG2){
         Default.left = AvgCurr.left;
         Default.right = AvgCurr.right;
@@ -155,8 +156,8 @@ void loop() {
       state = average(&sigIn,&AvgCurr,&Avg) == 1 ? FSM_DOWN_DETECT : FSM_AVG4;  
       break;
     case FSM_DOWN_DETECT:
-      Serial.println("Curr Right = "+(String)AvgCurr.right+", Curr Left = "+(String)AvgCurr.left);
-      Serial.println("Old Right = "+(String)AvgOld.right+", Old Left = "+(String)AvgOld.left);
+      //Serial.println("Curr Right = "+(String)AvgCurr.right+", Curr Left = "+(String)AvgCurr.left);
+      //Serial.println("Old Right = "+(String)AvgOld.right+", Old Left = "+(String)AvgOld.left);
       state = AvgCurr.right < AvgOld.right+EPS && AvgCurr.right > AvgOld.right-EPS && AvgCurr.left < AvgOld.left+EPS && AvgCurr.left > AvgOld.left-EPS ? FSM_AVG4 : FSM_AVG5;                
       break;
     case FSM_AVG5:
@@ -198,6 +199,31 @@ void loop() {
       Serial.println("Default Right = "+(String)Default.right+", Default Left = "+(String)Default.left);
       Serial.println("Highest Right = "+(String)highest.right+", Highest Left = "+(String)highest.left);
       Serial.println("MSG Right = "+(String)msg.right+", MSG Left = "+(String)msg.left);
+
+      const float sigmaR = highest.right*0.15;
+      const float sigmaL = highest.left*0.15;
+      
+      if(msg.left < highest.left*0.4+sigmaL && msg.left > highest.left*0.4-sigmaL && msg.right < highest.right*0.4+sigmaR && msg.right > highest.right*0.4-sigmaR)
+        Serial.println("Botão 0");
+      else if(msg.left < highest.left*0.4+sigmaL && msg.left > highest.left*0.4-sigmaL && msg.right < highest.right*0.6+sigmaR && msg.right > highest.right*0.6-sigmaR)
+        Serial.println("Botão 1");
+      else if(msg.left < highest.left*0.6+sigmaL && msg.left > highest.left*0.6-sigmaL && msg.right < highest.right*0.4+sigmaR && msg.right > highest.right*0.4-sigmaR)
+        Serial.println("Botão 2");
+      else if(msg.left < highest.left*0.6+sigmaL && msg.left > highest.left*0.6-sigmaL && msg.right < highest.right*0.6+sigmaR && msg.right > highest.right*0.6-sigmaR)
+        Serial.println("Botão 3");
+      else if(msg.left < highest.left*0.8+sigmaL && msg.left > highest.left*0.8-sigmaL && msg.right < highest.right*0.4+sigmaR && msg.right > highest.right*0.4-sigmaR)
+        Serial.println("Botão 4");
+      else if(msg.left < highest.left*0.4+sigmaL && msg.left > highest.left*0.4-sigmaL && msg.right < highest.right*0.8+sigmaR && msg.right > highest.right*0.8-sigmaR)
+        Serial.println("Botão 5");
+      else if(msg.left < highest.left*0.8+sigmaL && msg.left > highest.left*0.8-sigmaL && msg.right < highest.right*0.6+sigmaR && msg.right > highest.right*0.6-sigmaR)
+        Serial.println("Botão 6");
+      else if(msg.left < highest.left*0.6+sigmaL && msg.left > highest.left*0.6-sigmaL && msg.right < highest.right*0.8+sigmaR && msg.right > highest.right*0.8-sigmaR)
+        Serial.println("Botão 7");
+      else if(msg.left < highest.left*0.8+sigmaL && msg.left > highest.left*0.8-sigmaL && msg.right < highest.right*0.8+sigmaR && msg.right > highest.right*0.8-sigmaR)
+        Serial.println("Botão 8");
+      else if(msg.left < highest.left*1.0+sigmaL && msg.left > highest.left*1.0-sigmaL && msg.right < highest.right*0.4+sigmaR && msg.right > highest.right*0.4-sigmaR)
+        Serial.println("Botão 9");
+        
       highest.left = msg.left = AvgOld.left = 0;  
       highest.right = msg.right = AvgOld.right = 0;
       state = FSM_INIT;
