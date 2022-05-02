@@ -20,8 +20,8 @@ uint16_t N;
 uint8_t condition;
 
 struct dataPP{
-  uint16_t left;
-  uint16_t right;
+  int16_t left;
+  int16_t right;
 }typedef DataPP;
 
 DataPP sigIn,sigOld;
@@ -34,17 +34,17 @@ DataPP msg;
 //uint8_t flag1,flag2,flag3,flag4,theEnd;
 
 void PP(DataPP *sig, float freq){ 
-  uint16_t X_min = 4096;
-  uint16_t X_max = 0;
-  uint16_t Y_min = 4096;
-  uint16_t Y_max = 0;
+  int16_t X_min = 4096;
+  int16_t X_max = 0;
+  int16_t Y_min = 4096;
+  int16_t Y_max = 0;
   
   unsigned long T = 20*(1/freq);
   unsigned long t0 = (unsigned long)millis();
 
   while((unsigned long)(millis() - t0) <= T){
-    uint16_t leftIn = analogRead(A0);
-    uint16_t rightIn = analogRead(A2);
+    int16_t leftIn = analogRead(A0);
+    int16_t rightIn = analogRead(A2);
 
     X_min = leftIn < X_min ? leftIn : X_min;
     X_max = leftIn > X_max ? leftIn : X_max;
