@@ -1,4 +1,5 @@
 #define EPS 2
+#define AVG_LIM 30
 
 //Frequency(Hz) of the input signal
 const float FREQ = 440;
@@ -39,7 +40,7 @@ void PP(DataPP *sig, float freq){
   int16_t Y_min = 4096;
   int16_t Y_max = 0;
   
-  unsigned long T = 20*(1/freq);
+  unsigned long T = 2*(1/freq);
   unsigned long t0 = (unsigned long)millis();
 
   while((unsigned long)(millis() - t0) <= T){
@@ -62,7 +63,7 @@ void process(uint8_t NextState,uint8_t CurrentState,DataPP *sigIn,DataPP *store,
     store->right = store->right / N;
     N = 0;
   }else{
-    if(N <= 50){      
+    if(N <= AVG_LIM){      
       store->left += sigIn->left;
       store->right += sigIn->right;
       N++;

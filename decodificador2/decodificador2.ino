@@ -1,6 +1,6 @@
 #define EPS 25
 #define EPS2 25
-#define AVG_LIM 50
+#define AVG_LIM 30
 
 //Frequency(Hz) of the input signal
 const float FREQ = 440;
@@ -52,7 +52,7 @@ void PP(DataPP *sig, float freq){
   int16_t Y_min = 4096;
   int16_t Y_max = 0;
   
-  unsigned long T = 20*(1/freq);
+  unsigned long T = 2*(1/freq);
   unsigned long t0 = (unsigned long)millis();
 
   while((unsigned long)(millis() - t0) <= T){
@@ -200,8 +200,8 @@ void loop() {
       Serial.println("Highest Right = "+(String)highest.right+", Highest Left = "+(String)highest.left);
       Serial.println("MSG Right = "+(String)msg.right+", MSG Left = "+(String)msg.left);
 
-      const float sigmaR = highest.right*0.15;
-      const float sigmaL = highest.left*0.15;
+      const float sigmaR = highest.right*0.20;
+      const float sigmaL = highest.left*0.20;
       
       if(msg.left < highest.left*0.4+sigmaL && msg.left > highest.left*0.4-sigmaL && msg.right < highest.right*0.4+sigmaR && msg.right > highest.right*0.4-sigmaR)
         Serial.println("Botão 0");
